@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm import relationship
 
 from limoo import LimooDriver
+from utils import get_current_millis
 from . import Base, create_model
 from .conversation import get_or_add_conversation
 from .user import User
@@ -24,6 +25,7 @@ class Task(Base):
     status = Column(Enum(TaskStatus.TODO, TaskStatus.DONE, length=20), nullable=False, default=TaskStatus.TODO,
                     index=True)
     create_at = Column(BigInteger, index=True)
+    assign_date = Column(BigInteger, index=True)
     # due_date = None  # FIXME
     # remind_date = None  # FIXME
     # remind_with_sms = None  # FIXME
@@ -49,14 +51,19 @@ def get_task(db: Session, id: str) -> Task:
     return db.query(Task).get(id)
 
 
-def update_task(db: Session, msg_event, assignee: User, status: TaskStatus):
+def update_task(db: Session, task: Task, msg_event, assignee: User, status: TaskStatus):
     message_id_ = msg_event['data']['message']['id']
     message_text_ = msg_event['data']['message']['text']
+
+    assign_date = task.assign_date
+    if task.assignee_id != assignee.id:
+        assign_date = get_current_millis()
 
     update_statement = update(Task).where(Task.id == message_id_).values({
         Task.description: message_text_,
         Task.assignee: assignee,
         Task.status: status,
+        Task.assign_date: assign_date,
     })
     db.execute(update_statement)
     db.commit()
@@ -64,12 +71,14 @@ def update_task(db: Session, msg_event, assignee: User, status: TaskStatus):
 
 async def add_task(db: Session, ld: LimooDriver, msg_event, reporter: User, assignee: User, status: TaskStatus) -> Task:
     conversation = await get_or_add_conversation(db, ld, msg_event)
+    assign_date = get_current_millis()
+
     new_task = Task(id=(msg_event['data']['message']['id']), description=(msg_event['data']['message']['text']),
                     direct_reply_message_id=msg_event['data']['message']['direct_reply_message_id'],
                     thread_root_id=msg_event['data']['message']['thread_root_id'],
                     status=status, create_at=msg_event['data']['message']['create_at'],
                     conversation_id=conversation.id, workspace_id=msg_event['data']['workspace_id'],
-                    reporter=reporter, assignee=assignee, )
+                    reporter=reporter, assignee=assignee, assign_date=assign_date)
     return create_model(db, new_task)
 
 

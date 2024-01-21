@@ -12,7 +12,7 @@ ME_WORDS = ['من', 'خودم', 'بنده', 'اینجانب']
 GROUP_WORDS = ['گروه', 'گروپ', 'مکالمه', 'اعضا', 'کاربران', 'همه']
 WORKSPACE_WORDS = ['فضا', 'فضای کاری', 'ورک اسپیس', 'تیم']
 
-COMMAND__LIST = re.compile(
+LIST_COMMAND = re.compile(
     r'^/کارساز\s+'
     r'(?:(?:لیست|فهرست|مجموعه)\s+)?'
     r'(?:(?:همه|همه‌ی|همه ی|تمام|کل)\s+)?'
@@ -21,15 +21,14 @@ COMMAND__LIST = re.compile(
     r'(?:\s+(' + '|'.join(ME_WORDS) + '|' + '|'.join(
         GROUP_WORDS) + '|@\S+)(?:\s+(?:(?:در|تو|توی|داخل|درون)\s+)?(' + '|'.join(WORKSPACE_WORDS) + '))?)?(?:\s+.*)?'
 )
+
 TASK_TAG_PATTERN = re.compile(r'(?<!\w)(#Task|#Assigned|#کار)(?!\w)', re.IGNORECASE)
 DONE_TAG_PATTERN = re.compile(r'(?<!\w)(#Done|#Done_and_Approved)(?!\w)', re.IGNORECASE)
 MENTION_USERNAME_PATTERN = re.compile(r'@(\S+)')
 
 
-async def process_task(event):
+async def task_create_or_edit(event):
     global ld, bot_user
-
-    # TODO: use #Postponed tag? (for example for manual suspending?)
 
     db = SessionLocal()
 
@@ -64,7 +63,7 @@ async def process_task(event):
             pre_assignee = task.assignee
             pre_status = task.status
 
-            update_task(db, event, assignee, status)
+            update_task(db, task, event, assignee, status)
 
             if not marked_as_done:
                 if pre_assignee != assignee:
@@ -76,7 +75,6 @@ async def process_task(event):
                     else:
                         sending_message = f'{reporter.display_name} این کار را ' + (
                             f'برای @{assignee.username}' if assignee else 'بدون تخصیص') + ' دوباره باز کرد'
-                #  TODO: notify about description changes?
         else:
             await add_task(db, ld, event, reporter, assignee, status)
 
@@ -94,23 +92,49 @@ async def process_task(event):
                                  thread_root_id=sending_msg_thread_root_id, direct_reply_message_id=message_id_)
 
 
+async def task_delete(event):
+    global ld, bot_user
+
+    db = SessionLocal()
+
+    workspace_id_ = event['data']['workspace_id']
+    conversation_id_ = event['data']['message']['conversation_id']
+    message_id_ = event['data']['message']['id']
+    thread_root_id_ = event['data']['message']['thread_root_id']
+    user_id_ = event['data']['message']['user_id']
+
+    task = get_task(db, message_id_)
+    if task:
+        delete_task(db, task)
+
+        if thread_root_id_:
+            reporter = await get_or_add_user_by_id(db, ld, user_id_, workspace_id_)
+            sending_message = f'این کار توسط {reporter.display_name} حذف شد'
+            time.sleep(1)
+            await ld.messages.create(workspace_id_, conversation_id_, sending_message,
+                                     thread_root_id=thread_root_id_, direct_reply_message_id=message_id_)
+
+
 async def on_event(event):
     global ld, bot_user
 
-    if event['event'] == 'message_created' \
-            and not (event['data']['message']['type'] or event['data']['message']['user_id'] == bot_user['id']):
+    if event['data']['message']['type'] or event['data']['message']['user_id'] == bot_user['id']:
+        return
+
+    if event['event'] == 'message_created':
         message_text_ = event['data']['message']['text']
 
-        match = COMMAND__LIST.match(message_text_)
+        match = LIST_COMMAND.match(message_text_)
         if match:
             print(match.group(1), match.group(2))
-            # TODO
-            # TODO: if request for tasks of workspace, each group has a separate section
+            # FIXME
+            # FIXME: if request for tasks of workspace, each group has a separate section
         else:
-            await process_task(event)
-    elif event['event'] == 'message_edited' \
-            and not (event['data']['message']['type'] or event['data']['message']['user_id'] == bot_user['id']):
-        await process_task(event)
+            await task_create_or_edit(event)
+    elif event['event'] == 'message_edited':
+        await task_create_or_edit(event)
+    elif event['event'] == 'message_deleted':
+        await task_create_or_edit(event)
 
 
 async def listen(ld):
