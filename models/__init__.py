@@ -1,9 +1,11 @@
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "sqlite:///D:/work/workspace/karsaz.db"
+DATABASE_URL = f"sqlite:///{os.getenv('KARSAZ_DB_FILE_PATH') or '../karsaz.db'}"
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
