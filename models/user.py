@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 from sqlalchemy import Column, String, Boolean, update
@@ -17,7 +18,7 @@ class User(Base):
     id = Column(String, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     is_bot = Column(Boolean, nullable=False, default=False)
-    display_name = Column(String)  # first_name + last_name | nickname | username
+    display_name = Column(String)  # (first_name + last_name) | nickname | username
     avatar_hash = Column(String)
 
     username_users = relationship('UsernameUser', back_populates='user')
@@ -25,8 +26,11 @@ class User(Base):
     reported_tasks = relationship('Task', back_populates='reporter', foreign_keys="Task.reporter_id")
     assigned_tasks = relationship('Task', back_populates='assignee', foreign_keys="Task.assignee_id")
 
+    def mention(self):
+        return "@" + self.username
 
-async def update_user_by_user_json(db: Session, ld: LimooDriver, user: User, user_json, workspace_id: str):
+
+def update_user_by_user_json(db: Session, ld: LimooDriver, user: User, user_json, workspace_id: str):
     display_name = calc_user_display_name(user_json)
     if user.username != user_json['username'] or user.display_name != display_name or \
             user.avatar_hash != user_json['avatar_hash']:
@@ -37,13 +41,14 @@ async def update_user_by_user_json(db: Session, ld: LimooDriver, user: User, use
         })
         db.execute(update_statement)
         db.commit()
-    await update_member(db, ld, user, workspace_id)
+
+    asyncio.create_task(update_member(db, ld, user, workspace_id))
     add_username_user_if_not_exists(db, user)
 
 
-async def add_user(db: Session, ld: LimooDriver, new_user: User, workspace_id: str):
+def add_user(db: Session, ld: LimooDriver, new_user: User, workspace_id: str):
     user = create_model(db, new_user)
-    await add_member(db, ld, user, workspace_id)
+    asyncio.create_task(add_member(db, ld, user, workspace_id))
     add_username_user_if_not_exists(db, user)
     return user
 
@@ -56,7 +61,7 @@ async def get_or_add_user_by_username(db: Session, ld: LimooDriver, username: st
     if user_json:
         user = db.query(User).get(user_json['id'])
         if user:
-            await update_user_by_user_json(db, ld, user, user_json, workspace_id)
+            update_user_by_user_json(db, ld, user, user_json, workspace_id)
             return user
     else:
         username_user = get_username_user(db, username)
@@ -68,7 +73,7 @@ async def get_or_add_user_by_username(db: Session, ld: LimooDriver, username: st
             if user_json:
                 user = db.query(User).get(user_json['id'])
                 if user:
-                    await update_user_by_user_json(db, ld, user, user_json, workspace_id)
+                    update_user_by_user_json(db, ld, user, user_json, workspace_id)
                     return user
 
     if user_json:
@@ -77,7 +82,7 @@ async def get_or_add_user_by_username(db: Session, ld: LimooDriver, username: st
     else:
         new_user = User(id=str(uuid.uuid4()), username=username)
 
-    return await add_user(db, ld, new_user, workspace_id)
+    return add_user(db, ld, new_user, workspace_id)
 
 
 async def get_or_add_user_by_id(db: Session, ld: LimooDriver, id: str, workspace_id: str) -> User:
@@ -89,7 +94,7 @@ async def get_or_add_user_by_id(db: Session, ld: LimooDriver, id: str, workspace
     user = db.query(User).get(id)
     if user:
         if user_json:
-            await update_user_by_user_json(db, ld, user, user_json, workspace_id)
+            update_user_by_user_json(db, ld, user, user_json, workspace_id)
         return user
 
     if not user_json:
@@ -97,4 +102,4 @@ async def get_or_add_user_by_id(db: Session, ld: LimooDriver, id: str, workspace
 
     new_user = User(id=user_json['id'], username=user_json['username'], is_bot=user_json['is_bot'],
                     display_name=calc_user_display_name(user_json), avatar_hash=user_json['avatar_hash'])
-    return await add_user(db, ld, new_user, workspace_id)
+    return add_user(db, ld, new_user, workspace_id)

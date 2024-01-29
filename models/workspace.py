@@ -21,17 +21,12 @@ class Workspace(Base):
     tasks = relationship('Task', back_populates='workspace')
 
 
-def get_all_workspaces(db: Session) -> List[Workspace]:
-    return db.query(Workspace).all()
-
-
-async def get_or_add_workspace(db: Session, ld: LimooDriver, msg_event) -> Workspace:
-    workspace_id_ = msg_event['data']['workspace_id']
-    existing_workspace = db.query(Workspace).get(workspace_id_)
+async def get_or_add_workspace(db: Session, ld: LimooDriver, id: str) -> Workspace:
+    existing_workspace = db.query(Workspace).get(id)
     if existing_workspace:
         return existing_workspace
-    workspace_json = await ld.workspaces.get(workspace_id_)
-    new_workspace = Workspace(id=workspace_id_, name=workspace_json['name'],
+    workspace_json = await ld.workspaces.get(id)
+    new_workspace = Workspace(id=id, name=workspace_json['name'],
                               display_name=workspace_json['display_name'],
                               default_conversation_id=workspace_json['default_conversation_id'])
     return create_model(db, new_workspace)

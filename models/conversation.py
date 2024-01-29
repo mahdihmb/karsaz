@@ -34,7 +34,7 @@ async def get_or_add_conversation(db: Session, ld: LimooDriver, msg_event) -> Co
     existing_conversation = db.query(Conversation).get(conversation_id_)
     if existing_conversation:
         return existing_conversation
-    workspace = await get_or_add_workspace(db, ld, msg_event)
+    workspace = await get_or_add_workspace(db, ld, msg_event['data']['workspace_id'])
     new_conversation = Conversation(id=conversation_id_, type=msg_event['data']['conversation_type'],
                                     display_name=msg_event['data']['conversation_display_name'],
                                     workspace_id=workspace.id)

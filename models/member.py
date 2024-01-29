@@ -1,4 +1,6 @@
-from sqlalchemy import Column, String, ForeignKey, update
+import asyncio
+
+from sqlalchemy import Column, String, ForeignKey, update, and_
 from sqlalchemy.orm import relationship, Session
 
 from cache.member import get_member_json_by_workspace_id_and_user_id, load_json_members, calc_member_display_name
@@ -9,7 +11,7 @@ from . import Base, create_model
 class Member(Base):
     __tablename__ = "members"
 
-    display_name = Column(String)  # first_name + last_name | nickname
+    display_name = Column(String)  # (first_name + last_name) | nickname
     avatar_hash = Column(String)
 
     user_id = Column(String, ForeignKey('users.id'), primary_key=True, index=True)
@@ -36,9 +38,12 @@ async def add_member(db: Session, ld: LimooDriver, user, workspace_id: str):
 
 
 async def update_member(db: Session, ld: LimooDriver, user, workspace_id: str):
-    member: Member = db.query(Member).get({'user_id': user.id, 'workspace_id': workspace_id})
+    member: Member = db.query(Member).where(and_(
+        Member.user_id == user.id,
+        Member.workspace_id == workspace_id,
+    )).first()
     if not member:
-        await add_member(db, ld, user, workspace_id)
+        asyncio.create_task(add_member(db, ld, user, workspace_id))
         return
 
     member_json = get_member_json_by_workspace_id_and_user_id(workspace_id, user.id)

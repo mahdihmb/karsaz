@@ -2,6 +2,8 @@ import os
 
 from limoo import LimooDriver
 
+LIMOO_HOST = 'web.limoo.im'
+
 ld = None
 
 
@@ -14,5 +16,5 @@ def getLimooDriver() -> LimooDriver:
         raise "required envs not set: KARSAZ_BOT_USERNAME, KARSAZ_BOT_PASSWORD"
 
     if not ld:
-        ld = LimooDriver('web.limoo.im', bot_username, bot_password)
+        ld = LimooDriver(LIMOO_HOST, bot_username, bot_password)
     return ld

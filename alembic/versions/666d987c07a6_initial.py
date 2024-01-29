@@ -73,6 +73,7 @@ def upgrade() -> None:
         sa.Column('status', sa.Enum(TaskStatus.TODO, TaskStatus.DONE, TaskStatus.SUSPENDED), nullable=False,
                   server_default=TaskStatus.TODO, index=True),
         sa.Column('create_at', sa.BigInteger, index=True),
+        sa.Column('assign_date', sa.BigInteger, index=True),
         sa.Column('conversation_id', sa.String, sa.ForeignKey(Conversation.__tablename__ + '.id')),
         sa.Column('workspace_id', sa.String, sa.ForeignKey(Workspace.__tablename__ + '.id')),
         sa.Column('reporter_id', sa.String, sa.ForeignKey(User.__tablename__ + '.id')),

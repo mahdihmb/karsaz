@@ -1,13 +1,19 @@
+import re
+from datetime import datetime
+
+from jdatetime import datetime as jdt, FA_LOCALE
 from sqlalchemy import Column, String, Enum, ForeignKey, BigInteger, update, delete
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import relationship
 
 from limoo import LimooDriver
+from limoo_driver_provider import LIMOO_HOST
 from utils import get_current_millis
 from . import Base, create_model
 from .conversation import get_or_add_conversation
-from .user import User
+from .user import User, get_or_add_user_by_username
 
+MENTION_USERNAME_PATTERN = re.compile(r'@(\S+)')
 
 class TaskStatus(Enum):
     TODO = 'todo'
@@ -46,6 +52,52 @@ class Task(Base):
     assignee_id = Column(String, ForeignKey('users.id'))
     assignee = relationship('User', back_populates='assigned_tasks', foreign_keys=[assignee_id])
 
+    def status_persian(self):
+        if self.status == TaskStatus.TODO:
+            return 'انجام نشده'
+        elif self.status == TaskStatus.DONE:
+            return 'انجام شده :white_check_mark:'
+        elif self.status == TaskStatus.SUSPENDED:
+            return 'معلق :o:'
+        else:
+            return 'نامعلوم'
+
+    def assign_date_jalali(self):
+        gregorian_datetime = datetime.fromtimestamp(self.assign_date / 1000.0)
+        persian_datetime = jdt.fromgregorian(datetime=gregorian_datetime, locale=FA_LOCALE)
+        return persian_datetime.strftime("%A، %Y/%m/%d %H:%M")
+
+    async def description_normalized(self, db: Session, ld: LimooDriver, workspace_id: str):
+        mentioned_usernames = MENTION_USERNAME_PATTERN.findall(self.description)
+        mentioned_users_map = {
+            username: (await get_or_add_user_by_username(db, ld, username, workspace_id)).display_name
+            for username in mentioned_usernames
+        }
+
+        result = re.sub(MENTION_USERNAME_PATTERN, lambda match: '@' + mentioned_users_map.get(match.group(1)), self.description)
+        result = (result.replace('#فوری', '#_فوری')
+                  .replace('#آنی', '#_آنی'))
+        return result
+
+    def direct_link(self):
+        link = f"https://{LIMOO_HOST}/Limonad/"
+        if self.thread_root_id:
+            link += f"workspace/{self.workspace.name}/conversation/{self.conversation_id}/thread/{self.thread_root_id}/message/{self.id}"
+        else:
+            link += f"workspace/{self.workspace.name}/conversation/{self.conversation_id}/message/{self.id}"
+        return link
+
+    async def to_string(self, db: Session, ld: LimooDriver, workspace_id: str):
+        return (f"{await self.description_normalized(db, ld, workspace_id)}\n\n"
+                "|||\n"
+                "|---|---|\n"
+                f"|:bust_in_silhouette: تخصیص|{self.assignee.display_name if self.assignee else 'بدون تخصیص :heavy_multiplication_x:'}|\n"
+                f"|:clipboard: وضعیت|{self.status_persian()}|\n"
+                f"|:clock4: زمان تخصیص|{self.assign_date_jalali()}|\n"
+                f"|:writing_hand: سازنده|{self.reporter.display_name}|\n"
+                f"|:link: لینک کار|{self.direct_link()}|\n"
+                )
+
 
 def get_task(db: Session, id: str) -> Task:
     return db.query(Task).get(id)
@@ -55,13 +107,14 @@ def update_task(db: Session, task: Task, msg_event, assignee: User, status: Task
     message_id_ = msg_event['data']['message']['id']
     message_text_ = msg_event['data']['message']['text']
 
+    assignee_id = assignee and assignee.id
     assign_date = task.assign_date
-    if task.assignee_id != assignee.id:
+    if task.assignee_id != assignee_id:
         assign_date = get_current_millis()
 
     update_statement = update(Task).where(Task.id == message_id_).values({
         Task.description: message_text_,
-        Task.assignee: assignee,
+        Task.assignee_id: assignee_id,
         Task.status: status,
         Task.assign_date: assign_date,
     })
