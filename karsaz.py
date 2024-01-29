@@ -23,11 +23,12 @@ UNASSIGNED_WORDS = ['رو هوا', 'مال هیچ کس', 'مال هیچکس', '�
                     'بی مسئول', 'بی‌مسئول', 'بدون مسئول', 'بدون‌مسئول',
                     'بی انجام دهنده', 'بی‌انجام دهنده', 'بدون انجام دهنده', 'بدون‌انجام دهنده',
                     'بی انجام‌دهنده', 'بی‌انجام‌دهنده', 'بدون انجام‌دهنده', 'بدون‌انجام‌دهنده', ]
-GROUP_WORDS = ['گروه', 'گروپ', 'مکالمه', 'اعضا', 'کاربران', 'همه', 'اینجا', 'همینجا', ]
+GROUP_WORDS = ['گروه', 'این گروه', 'گروپ', 'این گروپ', 'مکالمه', 'این مکالمه',
+               'اعضا', 'کاربران', 'همه', 'اینجا', 'همینجا', ]
 WORKSPACE_WORDS = ['فضا', 'فضای کاری', 'فضای‌کاری', 'ورک اسپیس', 'ورک‌‌اسپیس', 'تیم', ]
 
 LIST_COMMAND = re.compile(
-    r'^/(?:کارساز|کار)\s+'
+    r'^/کارساز\s+'
     r'(?:(?:لیست|فهرست|مجموعه)\s+)?'
     r'(?:(?:همه|همه‌ی|همه ی|تمام|کل)\s+)?'
     r'(?:لیست|فهرست|مجموعه|موارد|اساین|اساینی|اساین شده|اساین شده به|مسئول|تخصیص|تخصیص یافته|تخصیص یافته به|تودو|تو دو|کارهای|کارای|کار های|کارها|کار ها|تسکهای|تسکای|تسک های|تسکها|تسک ها)'
@@ -81,10 +82,14 @@ async def handle_task_create_or_edit(event):
         else:
             asyncio.create_task(add_task(db, ld, event, reporter, assignee, status))
             asyncio.create_task(ld.messages.add_reaction(workspace_id_, conversation_id_, message_id_, 'large_blue_circle'))
+            if marked_as_done:
+                asyncio.create_task(ld.messages.add_reaction(workspace_id_, conversation_id_, message_id_, 'white_check_mark'))
     else:
         if task:
             delete_task(db, task)
             asyncio.create_task(ld.messages.remove_reaction(workspace_id_, conversation_id_, message_id_, 'large_blue_circle'))
+            if task.status == TaskStatus.DONE:
+                asyncio.create_task(ld.messages.remove_reaction(workspace_id_, conversation_id_, message_id_, 'white_check_mark'))
 
 
 async def handle_task_delete(event):
@@ -126,29 +131,29 @@ async def handle_list_of_tasks(event, who: str, scope: str):
         tasks = db.query(Task).where(
             Task.conversation_id == conversation_id_,
         ).all()
-        sending_message = 'لیست کارهای **این گروه**:'
+        sending_message += f'لیست کارهای **این گروه** ({len(tasks)}):\n'
     elif who in UNASSIGNED_WORDS:
         tasks = db.query(Task).where(and_(
             Task.assignee_id == None,
             Task.conversation_id == conversation_id_,
         )).all()
-        sending_message = 'لیست کارهای *بدون مسئول* **این گروه**:'
+        sending_message += f'لیست کارهای *بدون مسئول* **این گروه** ({len(tasks)}):\n'
     else:
         if (who in ME_WORDS or assignee_id == user_id_) and in_workspace:
             tasks = db.query(Task).where(and_(
                 Task.assignee_id == assignee_id,
                 Task.workspace_id == workspace_id_,
             )).all()
-            sending_message = f'لیست کارهای {mentioned_user.mention()} در **این فضا**:'
+            sending_message += f'لیست کارهای {mentioned_user.mention()} در **این فضا** ({len(tasks)}):\n'
         else:
             tasks = db.query(Task).where(and_(
                 Task.assignee_id == assignee_id,
                 Task.conversation_id == conversation_id_,
             )).all()
-            sending_message = f'لیست کارهای {mentioned_user.mention()} در **این گروه**:'
+            sending_message += f'لیست کارهای {mentioned_user.mention()} در **این گروه** ({len(tasks)}):\n'
 
     for task in tasks:
-        sending_message += '\n***\n' + await task.to_string(db, ld, workspace_id_)
+        sending_message += '***\n' + await task.to_string(db, ld, workspace_id_)
         if len(sending_message) >= SENDING_MSG_SIZE_LIMIT:
             time.sleep(0.1)
             await ld.messages.create(workspace_id_, conversation_id_, sending_message,
@@ -156,7 +161,7 @@ async def handle_list_of_tasks(event, who: str, scope: str):
             sending_message = ""
 
     if not tasks:
-        sending_message += "\n*موردی وجود ندارد*"
+        sending_message += "*موردی وجود ندارد*\n"
 
     if sending_message:
         time.sleep(0.1)

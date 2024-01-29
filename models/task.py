@@ -32,6 +32,7 @@ class Task(Base):
                     index=True)
     create_at = Column(BigInteger, index=True)
     assign_date = Column(BigInteger, index=True)
+    done_date = Column(BigInteger, index=True)
     # due_date = None  # FIXME
     # remind_date = None  # FIXME
     # remind_with_sms = None  # FIXME
@@ -115,11 +116,16 @@ def update_task(db: Session, task: Task, msg_event, assignee: User, status: Task
     if task.assignee_id != assignee_id:
         assign_date = get_current_millis()
 
+    done_date = task.done_date
+    if task.status != status and status == TaskStatus.TODO:
+        done_date = get_current_millis()
+
     update_statement = update(Task).where(Task.id == message_id_).values({
         Task.description: message_text_,
         Task.assignee_id: assignee_id,
         Task.status: status,
         Task.assign_date: assign_date,
+        Task.done_date: done_date,
     })
     db.execute(update_statement)
     db.commit()
