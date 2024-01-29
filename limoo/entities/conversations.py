@@ -75,6 +75,10 @@ class Conversations:
         endpoint = self._UPDATE.format(workspace_id, conversation_id)
         return await self._driver._execute_api_post(endpoint, body=update_body)
 
-
-
-
+    _VIEW_LOG = "workspace/items/{}/conversation/items/{}/view_log"
+    async def view_log(self, workspace_id, conversation_id):
+        endpoint = self._VIEW_LOG.format(workspace_id, conversation_id)
+        body = {
+            'prev_conversation_id': conversation_id,
+        }
+        return await self._driver._execute_api_post(endpoint, body=body)

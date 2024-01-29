@@ -169,6 +169,19 @@ async def handle_list_of_tasks(event, who: str, scope: str):
                                  thread_root_id=sending_msg_thread_root_id)
 
 
+async def view_log(event):
+    global ld
+
+    thread_root_id_ = event['data']['message']['thread_root_id']
+    workspace_id_ = event['data']['workspace_id']
+    conversation_id_ = event['data']['message']['conversation_id']
+
+    if thread_root_id_:
+        await ld.threads.view_log(workspace_id_, thread_root_id_)
+    else:
+        await ld.conversations.view_log(workspace_id_, conversation_id_)
+
+
 async def on_event(event):
     global ld, bot_user
 
@@ -177,13 +190,16 @@ async def on_event(event):
         return
 
     if event['event'] == 'message_created':
-        message_text_ = event['data']['message']['text']
+        try:
+            message_text_ = event['data']['message']['text']
 
-        match = LIST_COMMAND.match(message_text_)
-        if match:
-            await handle_list_of_tasks(event, match.group(1), match.group(2))
-        else:
-            await handle_task_create_or_edit(event)
+            match = LIST_COMMAND.match(message_text_)
+            if match:
+                await handle_list_of_tasks(event, match.group(1), match.group(2))
+            else:
+                await handle_task_create_or_edit(event)
+        finally:
+            await view_log(event)
     elif event['event'] == 'message_edited':
         await handle_task_create_or_edit(event)
     elif event['event'] == 'message_deleted':
