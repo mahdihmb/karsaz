@@ -52,6 +52,9 @@ class Task(Base):
     assignee_id = Column(String, ForeignKey('users.id'))
     assignee = relationship('User', back_populates='assigned_tasks', foreign_keys=[assignee_id])
 
+    def assignee_display_name(self):
+        return self.assignee.display_name if self.assignee else ':heavy_multiplication_x:مشخص نشده:heavy_multiplication_x:'
+
     def status_persian(self):
         if self.status == TaskStatus.TODO:
             return 'انجام نشده'
@@ -91,9 +94,9 @@ class Task(Base):
         return (f"{await self.description_normalized(db, ld, workspace_id)}\n\n"
                 "|||\n"
                 "|---|---|\n"
-                f"|:bust_in_silhouette: تخصیص|{self.assignee.display_name if self.assignee else 'بدون تخصیص :heavy_multiplication_x:'}|\n"
-                f"|:clipboard: وضعیت|{self.status_persian()}|\n"
-                f"|:clock4: زمان تخصیص|{self.assign_date_jalali()}|\n"
+                f"|:bust_in_silhouette: مسئول|{self.assignee_display_name()}|\n"
+                f"|:white_circle: وضعیت|{self.status_persian()}|\n"
+                f"|:date: زمان تخصیص|{self.assign_date_jalali()}|\n"
                 f"|:writing_hand: سازنده|{self.reporter.display_name}|\n"
                 f"|:link: لینک کار|{self.direct_link()}|\n"
                 )

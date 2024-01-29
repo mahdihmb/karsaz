@@ -20,7 +20,7 @@ LIST_COMMAND = re.compile(
     r'^/کارساز\s+'
     r'(?:(?:لیست|فهرست|مجموعه)\s+)?'
     r'(?:(?:همه|همه‌ی|همه ی|تمام|کل)\s+)?'
-    r'(?:لیست|فهرست|مجموعه|موارد|اساین|اساینی|اساین شده|اساین شده به|تخصیص|تخصیص یافته|تخصیص یافته به|تودو|تو دو|کارهای|کارای|کار های|کارها|کار ها|تسکهای|تسکای|تسک های|تسکها|تسک ها)'
+    r'(?:لیست|فهرست|مجموعه|موارد|اساین|اساینی|اساین شده|اساین شده به|مسئول|تخصیص|تخصیص یافته|تخصیص یافته به|تودو|تو دو|کارهای|کارای|کار های|کارها|کار ها|تسکهای|تسکای|تسک های|تسکها|تسک ها)'
     r'(?:\s+(?:باز|تودو|تو دو|انجام نشده|دان نشده|نیازمند اقدام|نیازمند بررسی|نیازمند توجه|منتظر|منتظر اقدام|منتظر بررسی|منتظر توجه))?'
     r'(?:\s+(' + '|'.join(ME_WORDS) + '|' + '|'.join(
         GROUP_WORDS) + '|@\S+)(?:\s+(?:(?:در|تو|توی|داخل|درون)\s+)?(' + '|'.join(WORKSPACE_WORDS) + '))?)?(?:\s+.*)?'
@@ -49,7 +49,6 @@ async def handle_task_create_or_edit(event):
     task = get_task(db, message_id_)
     reporter = await get_or_add_user_by_id(db, ld, user_id_, workspace_id_)
 
-    sending_message = ""
     if TASK_TAG_PATTERN.search(message_text_):
         marked_as_done = DONE_TAG_PATTERN.search(message_text_)
         status = TaskStatus.DONE if marked_as_done else TaskStatus.TODO
@@ -65,31 +64,17 @@ async def handle_task_create_or_edit(event):
 
             update_task(db, task, event, assignee, status)
 
-            # if not marked_as_done:
-            #     if pre_assignee != assignee:
-            #         sending_message = f'{reporter.display_name} این کار را ' + (
-            #             f'به @{assignee.username} تخصیص داد' if assignee else 'بدون تخصیص کرد')
-            #     if pre_status == TaskStatus.DONE:
-            #         if sending_message:
-            #             sending_message += ' و دوباره کار را باز کرد'
-            #         else:
-            #             sending_message = f'{reporter.display_name} این کار را ' + (
-            #                 f'برای @{assignee.username}' if assignee else 'بدون تخصیص') + ' دوباره باز کرد'
+            if marked_as_done and pre_status != TaskStatus.DONE:
+                asyncio.create_task(ld.messages.add_reaction(workspace_id_, conversation_id_, message_id_, 'white_check_mark'))
+            elif not marked_as_done and pre_status == TaskStatus.DONE:
+                asyncio.create_task(ld.messages.remove_reaction(workspace_id_, conversation_id_, message_id_, 'white_check_mark'))
         else:
-            await add_task(db, ld, event, reporter, assignee, status)
-
-            # if not marked_as_done:
-            #     sending_message = 'کار جدید ' + (
-            #         f'برای @{assignee.username}' if assignee else 'بدون تخصیص') + f' توسط {reporter.display_name} ایجاد شد'
+            asyncio.create_task(add_task(db, ld, event, reporter, assignee, status))
+            asyncio.create_task(ld.messages.add_reaction(workspace_id_, conversation_id_, message_id_, 'large_blue_circle'))
     else:
         if task:
             delete_task(db, task)
-            # sending_message = f'این کار توسط {reporter.display_name} حذف شد'
-
-    if sending_message:
-        time.sleep(1)
-        await ld.messages.create(workspace_id_, conversation_id_, sending_message,
-                                 thread_root_id=sending_msg_thread_root_id, direct_reply_message_id=message_id_)
+            asyncio.create_task(ld.messages.remove_reaction(workspace_id_, conversation_id_, message_id_, 'large_blue_circle'))
 
 
 async def handle_task_delete(event):
@@ -123,9 +108,10 @@ async def handle_list_of_tasks(event, who: str, scope: str):
 
     in_workspace = scope and scope in WORKSPACE_WORDS
     mentioned_user = who and who.startswith('@') and await get_or_add_user_by_username(db, ld, who[1:], workspace_id_)
-    assignee_id = mentioned_user.id if mentioned_user else user_id_
+    mentioned_user = mentioned_user or await get_or_add_user_by_id(db, ld, user_id_, workspace_id_)
+    assignee_id = mentioned_user.id
 
-    sending_message = ""
+    sending_message = ":clipboard: "
     if who in GROUP_WORDS:
         tasks = db.query(Task).where(
             Task.conversation_id == conversation_id_,
@@ -148,7 +134,7 @@ async def handle_list_of_tasks(event, who: str, scope: str):
     for task in tasks:
         sending_message += '\n***\n' + await task.to_string(db, ld, workspace_id_)
         if len(sending_message) >= SENDING_MSG_SIZE_LIMIT:
-            time.sleep(1)
+            time.sleep(0.1)
             await ld.messages.create(workspace_id_, conversation_id_, sending_message,
                                      thread_root_id=sending_msg_thread_root_id)
             sending_message = ""
@@ -157,7 +143,7 @@ async def handle_list_of_tasks(event, who: str, scope: str):
         sending_message += "\n*موردی وجود ندارد*"
 
     if sending_message:
-        time.sleep(1)
+        time.sleep(0.1)
         await ld.messages.create(workspace_id_, conversation_id_, sending_message,
                                  thread_root_id=sending_msg_thread_root_id)
 
