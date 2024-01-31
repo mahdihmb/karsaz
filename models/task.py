@@ -58,7 +58,7 @@ class Task(Base):
 
     def status_persian(self):
         if self.status == TaskStatus.TODO:
-            return 'انجام نشده'
+            return 'انجام نشده :x:'
         elif self.status == TaskStatus.DONE:
             return 'انجام شده :white_check_mark:'
         elif self.status == TaskStatus.SUSPENDED:
@@ -92,15 +92,18 @@ class Task(Base):
         return link
 
     async def to_string(self, db: Session, ld: LimooDriver, workspace_id: str):
-        return (f"{await self.description_normalized(db, ld, workspace_id)}\n\n"
-                "|||\n"
-                "|---|---|\n"
-                f"|:bust_in_silhouette: مسئول|{self.assignee_display_name()}|\n"
-                f"|:white_circle: وضعیت|{self.status_persian()}|\n"
-                f"|:date: زمان تخصیص|{self.assign_date_jalali()}|\n"
-                f"|:writing_hand: سازنده|{self.reporter.display_name}|\n"
-                f"|:link: لینک کار|{self.direct_link()}|\n"
-                )
+        return (
+            f"{await self.description_normalized(db, ld, workspace_id)}\n\n"
+            "|||\n"
+            "|---|---|\n"
+            f"|:bust_in_silhouette: مسئول|{self.assignee_display_name()}|\n"
+            f"|:white_circle: وضعیت|{self.status_persian()}|\n"
+            f"|:date: زمان تخصیص|{self.assign_date_jalali()}|\n"
+            f"|:writing_hand: سازنده|{self.reporter.display_name}|\n"
+            f"|:link: لینک کار|{self.direct_link()}|\n"
+            # f"|:id: شناسه کار|{self.id}|\n"
+            # f"|:radio_button: عملیات||\n"
+        )
 
 
 def get_task(db: Session, id: str) -> Task:
