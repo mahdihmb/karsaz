@@ -51,7 +51,7 @@ def upgrade() -> None:
     op.create_table(
         Conversation.__tablename__,
         sa.Column('id', sa.String, primary_key=True),
-        sa.Column('type', sa.Enum(ConversationType.PUBLIC, ConversationType.PRIVATE, ConversationType.DIRECT)),
+        sa.Column('type', sa.Enum(ConversationType.PUBLIC, ConversationType.PRIVATE, ConversationType.DIRECT, name='conversation_type')),
         sa.Column('display_name', sa.String),
         sa.Column('workspace_id', sa.String, sa.ForeignKey(Workspace.__tablename__ + '.id')),
     )
@@ -70,7 +70,7 @@ def upgrade() -> None:
         sa.Column('description', sa.String),
         sa.Column('direct_reply_message_id', sa.String),
         sa.Column('thread_root_id', sa.String),
-        sa.Column('status', sa.Enum(TaskStatus.TODO, TaskStatus.DONE, TaskStatus.SUSPENDED), nullable=False,
+        sa.Column('status', sa.Enum(TaskStatus.TODO, TaskStatus.DONE, TaskStatus.SUSPENDED, name='task_status'), nullable=False,
                   server_default=TaskStatus.TODO, index=True),
         sa.Column('create_at', sa.BigInteger, index=True),
         sa.Column('assign_date', sa.BigInteger, index=True),

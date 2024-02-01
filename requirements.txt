@@ -2,3 +2,4 @@ aiohttp==3.8.6
 alembic==1.12.1
 SQLAlchemy==2.0.23
 jdatetime==4.1.1
+psycopg2-binary==2.9.9

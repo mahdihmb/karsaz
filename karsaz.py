@@ -134,6 +134,8 @@ async def handle_list_of_tasks(event, who: str, scope: str):
     thread_root_id_ = event['data']['message']['thread_root_id']
     user_id_ = event['data']['message']['user_id']
 
+    conversation_representation = "مکالمه" if event['data']['conversation_type'] == 'direct' else "گروه"
+
     sending_msg_thread_root_id = thread_root_id_ if thread_root_id_ else message_id_
 
     in_workspace = scope and scope in WORKSPACE_WORDS
@@ -147,14 +149,14 @@ async def handle_list_of_tasks(event, who: str, scope: str):
             Task.conversation_id == conversation_id_,
             Task.status == TaskStatus.TODO,
         ).all()
-        sending_message += f'لیست کارهای **این گروه** ({len(tasks)}):\n'
+        sending_message += f'لیست کارهای **این {conversation_representation}** ({len(tasks)}):\n'
     elif who in UNASSIGNED_WORDS:
         tasks = db.query(Task).where(and_(
             Task.assignee_id == None,
             Task.conversation_id == conversation_id_,
             Task.status == TaskStatus.TODO,
         )).all()
-        sending_message += f'لیست کارهای *بدون مسئول* **این گروه** ({len(tasks)}):\n'
+        sending_message += f'لیست کارهای *بدون مسئول* **این {conversation_representation}** ({len(tasks)}):\n'
     else:
         if (who in ME_WORDS or assignee_id == user_id_) and in_workspace:
             tasks = db.query(Task).where(and_(
@@ -169,7 +171,7 @@ async def handle_list_of_tasks(event, who: str, scope: str):
                 Task.conversation_id == conversation_id_,
                 Task.status == TaskStatus.TODO,
             )).all()
-            sending_message += f'لیست کارهای {mentioned_user.mention()} در **این گروه** ({len(tasks)}):\n'
+            sending_message += f'لیست کارهای {mentioned_user.mention()} در **این {conversation_representation}** ({len(tasks)}):\n'
 
     for task in tasks:
         sending_message += '***\n' + await task.to_string(db, ld, workspace_id_)
