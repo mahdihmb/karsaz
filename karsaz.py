@@ -53,7 +53,7 @@ async def handle_task_create_or_edit(db: Session, event):
                 add_reactions(ld, workspace_id_, conversation_id_, message_id_, ['white_check_mark'])
     else:
         if task:
-            delete_task(db, task)
+            delete_task(db, task.id)
             remove_reactions(ld, workspace_id_, conversation_id_, message_id_, ['large_blue_circle', 'white_check_mark'])
 
 

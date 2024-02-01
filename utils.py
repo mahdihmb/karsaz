@@ -21,11 +21,13 @@ async def send_msg_in_thread(ld: LimooDriver, msg, event, reply=False):
 
 def add_reactions(ld: LimooDriver, workspace_id, conversation_id, message_id, reactions: list):
     for reaction in reactions:
+        time.sleep(0.1)
         asyncio.create_task(
             ld.messages.add_reaction(workspace_id, conversation_id, message_id, reaction))
 
 
 def remove_reactions(ld: LimooDriver, workspace_id, conversation_id, message_id, reactions: list):
     for reaction in reactions:
+        time.sleep(0.1)
         asyncio.create_task(
             ld.messages.remove_reaction(workspace_id, conversation_id, message_id, reaction))
