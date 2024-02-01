@@ -13,6 +13,8 @@ from . import Base, create_model
 from .conversation import get_or_add_conversation
 from .user import User, get_or_add_user_by_username
 
+EMPTY_ASSIGNEE = ':heavy_multiplication_x:مشخص نشده:heavy_multiplication_x:'
+
 MENTION_USERNAME_PATTERN = re.compile(r'@(\S+)')
 
 class TaskStatus(Enum):
@@ -53,9 +55,6 @@ class Task(Base):
     assignee_id = Column(String, ForeignKey('users.id'))
     assignee = relationship('User', back_populates='assigned_tasks', foreign_keys=[assignee_id])
 
-    def assignee_display_name(self):
-        return self.assignee.display_name if self.assignee else ':heavy_multiplication_x:مشخص نشده:heavy_multiplication_x:'
-
     def status_persian(self):
         if self.status == TaskStatus.TODO:
             return 'انجام نشده :x:'
@@ -74,7 +73,7 @@ class Task(Base):
     async def description_normalized(self, db: Session, ld: LimooDriver, workspace_id: str):
         mentioned_usernames = MENTION_USERNAME_PATTERN.findall(self.description)
         mentioned_users_map = {
-            username: (await get_or_add_user_by_username(db, ld, username, workspace_id)).display_name
+            username: (await get_or_add_user_by_username(db, ld, username, workspace_id)).display_name_considering_member(db, workspace_id)
             for username in mentioned_usernames
         }
 
@@ -96,11 +95,11 @@ class Task(Base):
             f"{await self.description_normalized(db, ld, workspace_id)}\n\n"
             "|||\n"
             "|---|---|\n"
-            f"|:bust_in_silhouette: مسئول|{self.assignee_display_name()}|\n"
+            f"|:bust_in_silhouette: مسئول|{self.assignee.avatar_and_display_name_considering_member(db, workspace_id) if self.assignee else EMPTY_ASSIGNEE}|\n"
             f"|:white_circle: وضعیت|{self.status_persian()}|\n"
             f"|:date: زمان تخصیص|{self.assign_date_jalali()}|\n"
-            f"|:writing_hand: سازنده|{self.reporter.display_name}|\n"
-            f"|:link: لینک کار|{self.direct_link()}|\n"
+            f"|:writing_hand: سازنده|{self.reporter.avatar_and_display_name_considering_member(db, workspace_id)}|\n"
+            f"|:link: لینک پیام|{self.direct_link()}|\n"
             # f"|:id: شناسه کار|{self.id}|\n"
             # f"|:radio_button: عملیات||\n"
         )

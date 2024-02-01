@@ -3,3 +3,5 @@
 
 # CPython's compiled bytecodes
 __pycache__/
+
+.idea/

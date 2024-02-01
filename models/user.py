@@ -1,14 +1,14 @@
 import asyncio
 import uuid
 
-from sqlalchemy import Column, String, Boolean, update
+from sqlalchemy import Column, String, Boolean, update, and_
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import relationship
 
 from cache.user import get_user_json_by_username, load_json_users, get_user_json_by_id, calc_user_display_name
 from limoo import LimooDriver
 from . import Base, create_model
-from .member import add_member, update_member
+from .member import add_member, update_member, Member
 from .username_user import get_username_user, add_username_user_if_not_exists
 
 
@@ -28,6 +28,26 @@ class User(Base):
 
     def mention(self):
         return "@" + self.username
+
+    def avatar_and_display_name_considering_member(self, db: Session, workspace_id: str):
+        member: Member = db.query(Member).where(and_(
+            Member.user_id == self.id,
+            Member.workspace_id == workspace_id,
+        )).first()
+
+        display_name = member and member.display_name or self.display_name
+        avatar_hash = member and member.avatar_hash or self.avatar_hash
+        if avatar_hash:
+            return f'![{display_name}](/fileserver/api/v1/files?hash={avatar_hash}&mode=view =25 "{display_name}") {display_name}'
+        return display_name
+
+    def display_name_considering_member(self, db: Session, workspace_id: str):
+        member: Member = db.query(Member).where(and_(
+            Member.user_id == self.id,
+            Member.workspace_id == workspace_id,
+        )).first()
+
+        return member and member.display_name or self.display_name
 
 
 def update_user_by_user_json(db: Session, ld: LimooDriver, user: User, user_json, workspace_id: str):
