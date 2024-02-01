@@ -79,7 +79,7 @@ async def get_or_add_user_by_username(db: Session, ld: LimooDriver, username: st
 
     user_json = await get_user_json_by_username(ld, username, workspace_id)
     if user_json:
-        user = db.query(User).get(user_json['id'])
+        user = db.get(User, user_json['id'])
         if user:
             update_user_by_user_json(db, ld, user, user_json, workspace_id)
             return user
@@ -93,7 +93,7 @@ async def get_or_add_user_by_username(db: Session, ld: LimooDriver, username: st
 
 
 async def get_or_add_user_by_id(db: Session, ld: LimooDriver, id: str, workspace_id: str) -> User:
-    user = db.query(User).get(id)
+    user = db.get(User, id)
     if user:
         return user
 

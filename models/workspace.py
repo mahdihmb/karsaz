@@ -22,7 +22,7 @@ class Workspace(Base):
 
 
 async def get_or_add_workspace(db: Session, ld: LimooDriver, id: str) -> Workspace:
-    existing_workspace = db.query(Workspace).get(id)
+    existing_workspace = db.get(Workspace, id)
     if existing_workspace:
         return existing_workspace
     workspace_json = await ld.workspaces.get(id)

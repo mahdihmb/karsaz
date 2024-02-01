@@ -6,16 +6,14 @@ from sqlalchemy import Column, String, Enum, ForeignKey, BigInteger, update, del
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import relationship
 
+from constants import EMPTY_ASSIGNEE, MENTION_USERNAME_PATTERN, DONE_TASK_TEMPLATE, DELETE_TASK_TEMPLATE
 from limoo import LimooDriver
 from limoo_driver_provider import LIMOO_HOST
-from utils import get_current_millis
+from utils import current_millis
 from . import Base, create_model
 from .conversation import get_or_add_conversation
 from .user import User, get_or_add_user_by_username
 
-EMPTY_ASSIGNEE = ':heavy_multiplication_x:مشخص نشده:heavy_multiplication_x:'
-
-MENTION_USERNAME_PATTERN = re.compile(r'@(\S+)')
 
 class TaskStatus(Enum):
     TODO = 'todo'
@@ -100,29 +98,23 @@ class Task(Base):
             f"|:date: زمان تخصیص|{self.assign_date_jalali()}|\n"
             f"|:writing_hand: سازنده|{self.reporter.avatar_and_display_name_considering_member(db, workspace_id)}|\n"
             f"|:link: لینک پیام|{self.direct_link()}|\n"
-            # f"|:id: شناسه کار|{self.id}|\n"
-            # f"|:radio_button: عملیات||\n"
+            # f"|:radio_button: عملیات|[[اتمام کار]({DONE_TASK_TEMPLATE.format(self.id)})] [[حذف کار]({DELETE_TASK_TEMPLATE.format(self.id)})]|\n"  # TODO
         )
 
 
-def get_task(db: Session, id: str) -> Task:
-    return db.query(Task).get(id)
-
-
 def update_task(db: Session, task: Task, msg_event, assignee: User, status: TaskStatus):
-    message_id_ = msg_event['data']['message']['id']
     message_text_ = msg_event['data']['message']['text']
 
     assignee_id = assignee and assignee.id
     assign_date = task.assign_date
     if task.assignee_id != assignee_id:
-        assign_date = get_current_millis()
+        assign_date = current_millis()
 
     done_date = task.done_date
     if task.status != status and status == TaskStatus.TODO:
-        done_date = get_current_millis()
+        done_date = current_millis()
 
-    update_statement = update(Task).where(Task.id == message_id_).values({
+    update_statement = update(Task).where(Task.id == task.id).values({
         Task.description: message_text_,
         Task.assignee_id: assignee_id,
         Task.status: status,
@@ -135,7 +127,7 @@ def update_task(db: Session, task: Task, msg_event, assignee: User, status: Task
 
 async def add_task(db: Session, ld: LimooDriver, msg_event, reporter: User, assignee: User, status: TaskStatus) -> Task:
     conversation = await get_or_add_conversation(db, ld, msg_event)
-    assign_date = get_current_millis()
+    assign_date = current_millis()
 
     new_task = Task(id=(msg_event['data']['message']['id']), description=(msg_event['data']['message']['text']),
                     direct_reply_message_id=msg_event['data']['message']['direct_reply_message_id'],
@@ -146,7 +138,7 @@ async def add_task(db: Session, ld: LimooDriver, msg_event, reporter: User, assi
     return create_model(db, new_task)
 
 
-def delete_task(db: Session, task: Task):
-    delete_statement = delete(Task).where(Task.id == task.id)
+def delete_task(db: Session, task_id: str):
+    delete_statement = delete(Task).where(Task.id == task_id)
     db.execute(delete_statement)
     db.commit()
