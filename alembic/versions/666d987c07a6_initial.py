@@ -14,7 +14,6 @@ from models.conversation import Conversation, ConversationType
 from models.member import Member
 from models.task import Task, TaskStatus
 from models.user import User
-from models.username_user import UsernameUser
 from models.workspace import Workspace
 
 # revision identifiers, used by Alembic.
@@ -32,12 +31,6 @@ def upgrade() -> None:
         sa.Column('is_bot', sa.Boolean, nullable=False, server_default='false'),
         sa.Column('display_name', sa.String),
         sa.Column('avatar_hash', sa.String),
-    )
-
-    op.create_table(
-        UsernameUser.__tablename__,
-        sa.Column('username', sa.String, primary_key=True),
-        sa.Column('user_id', sa.String, sa.ForeignKey(User.__tablename__ + '.id')),
     )
 
     op.create_table(
@@ -87,5 +80,4 @@ def downgrade() -> None:
     op.drop_table(Member.__tablename__)
     op.drop_table(Conversation.__tablename__)
     op.drop_table(Workspace.__tablename__)
-    op.drop_table(UsernameUser.__tablename__)
     op.drop_table(User.__tablename__)

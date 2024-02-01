@@ -3,7 +3,7 @@ import asyncio
 from sqlalchemy import Column, String, ForeignKey, update, and_
 from sqlalchemy.orm import relationship, Session
 
-from cache.member import get_member_json_by_workspace_id_and_user_id, load_json_members, calc_member_display_name
+from cache.member import get_member_json, calc_member_display_name
 from limoo import LimooDriver
 from . import Base, create_model
 
@@ -23,11 +23,7 @@ class Member(Base):
 
 
 async def add_member(db: Session, ld: LimooDriver, user, workspace_id: str):
-    member_json = get_member_json_by_workspace_id_and_user_id(workspace_id, user.id)
-    if not member_json:
-        await load_json_members(ld, workspace_id)
-        member_json = get_member_json_by_workspace_id_and_user_id(workspace_id, user.id)
-
+    member_json = await get_member_json(ld, workspace_id, user.id)
     if member_json:
         new_member = Member(display_name=calc_member_display_name(member_json), avatar_hash=member_json['avatar_hash'],
                             workspace_id=workspace_id, user=user)
@@ -42,15 +38,12 @@ async def update_member(db: Session, ld: LimooDriver, user, workspace_id: str):
         Member.user_id == user.id,
         Member.workspace_id == workspace_id,
     )).first()
+
     if not member:
         asyncio.create_task(add_member(db, ld, user, workspace_id))
         return
 
-    member_json = get_member_json_by_workspace_id_and_user_id(workspace_id, user.id)
-    if not member_json:
-        await load_json_members(ld, workspace_id)
-        member_json = get_member_json_by_workspace_id_and_user_id(workspace_id, user.id)
-
+    member_json = await get_member_json(ld, workspace_id, user.id)
     display_name = calc_member_display_name(member_json)
     if member_json and \
             (member.display_name != display_name or member.avatar_hash != member_json['avatar_hash']):
