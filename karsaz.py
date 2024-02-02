@@ -137,7 +137,7 @@ async def handle_list_of_tasks(db: Session, event, who: str, scope: str):
             sending_message = ""
 
     if not tasks:
-        sending_message += "*موردی وجود ندارد*\n"
+        sending_message += "[*موردی وجود ندارد*]\n"
 
     if sending_message:
         await send_msg_in_thread(ld, sending_message, event)

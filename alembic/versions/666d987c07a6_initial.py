@@ -9,8 +9,11 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.orm import context
 
+from models import DATABASE_URL
 from models.conversation import Conversation, ConversationType
+from models.attachment import Attachment
 from models.member import Member
 from models.task import Task, TaskStatus
 from models.user import User
@@ -81,12 +84,24 @@ def upgrade() -> None:
         sa.Column('assignee_id', sa.String, sa.ForeignKey(User.__tablename__ + '.id')),
     )
 
+    op.create_table(
+        Attachment.__tablename__,
+        sa.Column('hash', sa.String, primary_key=True),
+        sa.Column('name', sa.String, index=True),
+        sa.Column('mime_type', sa.String),
+        sa.Column('size', sa.BigInteger),
+        sa.Column('task_id', sa.String, sa.ForeignKey(Task.__tablename__ + '.id')),
+    )
+
 
 def downgrade() -> None:
+    op.drop_table(Attachment.__tablename__)
     op.drop_table(Task.__tablename__)
-    op.execute(f'DROP TYPE IF EXISTS {TASK_STATUS}')
     op.drop_table(Member.__tablename__)
     op.drop_table(Conversation.__tablename__)
-    op.execute(f'DROP TYPE IF EXISTS {CONVERSATION_TYPE}')
     op.drop_table(Workspace.__tablename__)
     op.drop_table(User.__tablename__)
+
+    if not DATABASE_URL.startswith('sqlite:///'):
+        op.execute(f'DROP TYPE IF EXISTS {TASK_STATUS}')
+        op.execute(f'DROP TYPE IF EXISTS {CONVERSATION_TYPE}')

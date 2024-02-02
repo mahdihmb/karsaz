@@ -2,7 +2,7 @@ import os
 
 from limoo import LimooDriver
 
-LIMOO_HOST = 'web.limoo.im'
+LIMOO_HOST = os.getenv('LIMOO_HOST') or 'web.limoo.im'
 
 ld = None
 

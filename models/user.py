@@ -36,7 +36,7 @@ class User(Base):
         display_name = member and member.display_name or self.display_name
         avatar_hash = member and member.avatar_hash or self.avatar_hash
         if avatar_hash:
-            return f'![{display_name}](/fileserver/api/v1/files?hash={avatar_hash}&mode=view =25 "{display_name}") {display_name}'
+            return f'![{display_name}](/fileserver/api/v1/files?hash={avatar_hash}&mode=view =x25 "{display_name}") {display_name}'
         return display_name
 
     def display_name_considering_member(self, db: Session, workspace_id: str):
