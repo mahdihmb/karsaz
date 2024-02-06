@@ -1,6 +1,6 @@
 import asyncio
 
-from sqlalchemy import Column, String, ForeignKey, update, and_
+from sqlalchemy import Column, String, ForeignKey, update
 from sqlalchemy.orm import relationship, Session
 
 from cache.member import get_member_json, calc_member_display_name
@@ -34,10 +34,10 @@ async def add_member(db: Session, ld: LimooDriver, user, workspace_id: str):
 
 
 async def update_member(db: Session, ld: LimooDriver, user, workspace_id: str):
-    member: Member = db.query(Member).where(and_(
+    member: Member = db.query(Member).where(
         Member.user_id == user.id,
         Member.workspace_id == workspace_id,
-    )).first()
+    ).first()
 
     if not member:
         asyncio.create_task(add_member(db, ld, user, workspace_id))

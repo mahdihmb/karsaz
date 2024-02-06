@@ -1,4 +1,3 @@
-from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from constants import WORKSPACE_WORDS, GROUP_WORDS, UNASSIGNED_WORDS, ME_WORDS, SENDING_MSG_SIZE_LIMIT
@@ -28,26 +27,26 @@ async def handle_list_of_tasks(ld: LimooDriver, db: Session, event, who: str, sc
         ).all()
         sending_message += f'لیست کارهای **این {conversation_label}** ({len(tasks)}):\n'
     elif who in UNASSIGNED_WORDS:
-        tasks = db.query(Task).where(and_(
+        tasks = db.query(Task).where(
             Task.assignee_id == None,
             Task.conversation_id == conversation_id_,
             Task.status == TaskStatus.TODO,
-        )).all()
+        ).all()
         sending_message += f'لیست کارهای *بدون مسئول* **این {conversation_label}** ({len(tasks)}):\n'
     else:
         if (who in ME_WORDS or assignee_id == user_id_) and in_workspace:
-            tasks = db.query(Task).where(and_(
+            tasks = db.query(Task).where(
                 Task.assignee_id == assignee_id,
                 Task.workspace_id == workspace_id_,
                 Task.status == TaskStatus.TODO,
-            )).all()
+            ).all()
             sending_message += f'لیست کارهای {mentioned_user.mention()} در **این فضا** ({len(tasks)}):\n'
         else:
-            tasks = db.query(Task).where(and_(
+            tasks = db.query(Task).where(
                 Task.assignee_id == assignee_id,
                 Task.conversation_id == conversation_id_,
                 Task.status == TaskStatus.TODO,
-            )).all()
+            ).all()
             sending_message += f'لیست کارهای {mentioned_user.mention()} در **این {conversation_label}** ({len(tasks)}):\n'
 
     for task in tasks:

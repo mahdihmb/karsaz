@@ -93,16 +93,18 @@ class Task(Base):
         return link
 
     async def to_string(self, db: Session, ld: LimooDriver, workspace_id: str):
-        attachments_table = (
-            "|*ضمیمه‌ها*||\n"
-            "|---|---|\n"
-        )
-        for attachment in self.attachments:
-            attachments_table += attachment.table_row()
+        attachments_table = ""
+        if self.attachments:
+            attachments_table = (
+                "|*ضمیمه‌ها*||\n"
+                "|---|---|\n"
+            )
+            for attachment in self.attachments:
+                attachments_table += attachment.table_row()
 
         return (
             f"{await self.description_normalized(db, ld, workspace_id)}\n\n"
-            f"{attachments_table}\n"
+            f"{attachments_table}"
             "||*اطلاعات کار*|\n"
             "|---|---|\n"
             f"|:bust_in_silhouette: مسئول|{self.assignee.avatar_and_display_name_considering_member(db, workspace_id) if self.assignee else EMPTY_ASSIGNEE}|\n"

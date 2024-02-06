@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 
-from sqlalchemy import Column, String, Boolean, update, and_
+from sqlalchemy import Column, String, Boolean, update
 from sqlalchemy.orm import Session
 from sqlalchemy.orm import relationship
 
@@ -28,10 +28,10 @@ class User(Base):
         return "@" + self.username
 
     def avatar_and_display_name_considering_member(self, db: Session, workspace_id: str):
-        member: Member = db.query(Member).where(and_(
+        member: Member = db.query(Member).where(
             Member.user_id == self.id,
             Member.workspace_id == workspace_id,
-        )).first()
+        ).first()
 
         display_name = member and member.display_name or self.display_name
         avatar_hash = member and member.avatar_hash or self.avatar_hash
@@ -40,10 +40,10 @@ class User(Base):
         return display_name
 
     def display_name_considering_member(self, db: Session, workspace_id: str):
-        member: Member = db.query(Member).where(and_(
+        member: Member = db.query(Member).where(
             Member.user_id == self.id,
             Member.workspace_id == workspace_id,
-        )).first()
+        ).first()
 
         return member and member.display_name or self.display_name
 
