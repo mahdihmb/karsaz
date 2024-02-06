@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship, Session
 from cache.member import get_member_json, calc_member_display_name
 from limoo import LimooDriver
 from . import Base, create_model
+from .workspace import get_or_add_workspace
 
 
 class Member(Base):
