@@ -23,13 +23,14 @@ class Member(Base):
 
 
 async def add_member(db: Session, ld: LimooDriver, user, workspace_id: str):
-    member_json = await get_member_json(ld, workspace_id, user.id)
+    workspace = await get_or_add_workspace(db, ld, workspace_id)
+    member_json = await get_member_json(ld, workspace.id, user.id)
     if member_json:
         new_member = Member(display_name=calc_member_display_name(member_json), avatar_hash=member_json['avatar_hash'],
-                            workspace_id=workspace_id, user=user)
+                            workspace_id=workspace.id, user=user)
     else:
         new_member = Member(display_name=user.display_name, avatar_hash=user.avatar_hash,
-                            workspace_id=workspace_id, user=user)
+                            workspace_id=workspace.id, user=user)
     return create_model(db, new_member)
 
 
