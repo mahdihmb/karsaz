@@ -51,7 +51,7 @@ TASK_TAG_PATTERN = re.compile(r'(?<!\w)(#Task|#Assigned|#کار)(?!\w)', re.IGNO
 
 DONE_TAG_PATTERN = re.compile(r'(?<!\w)(#Done|#Done_and_Approved)(?!\w)', re.IGNORECASE)
 
-MENTION_USERNAME_PATTERN = re.compile(r'@(\S+)')
+MENTION_USERNAME_PATTERN = re.compile(r'@([a-zA-Z0-9._-]+)')
 
 
 SENDING_MSG_SIZE_LIMIT = 5000
