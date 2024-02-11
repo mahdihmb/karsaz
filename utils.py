@@ -28,6 +28,6 @@ def add_reactions(ld: LimooDriver, workspace_id, conversation_id, message_id, re
 
 def remove_reactions(ld: LimooDriver, workspace_id, conversation_id, message_id, reactions: list):
     for reaction in reactions:
-        time.sleep(0.1)
+        time.sleep(0.5)
         asyncio.create_task(
             ld.messages.remove_reaction(workspace_id, conversation_id, message_id, reaction))

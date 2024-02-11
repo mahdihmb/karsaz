@@ -104,7 +104,7 @@ class Task(Base):
 
         return (
             f"{await self.description_normalized(db, ld, workspace_id)}\n\n"
-            f"{attachments_table}"
+            f"{attachments_table}\n"
             "||*اطلاعات کار*|\n"
             "|---|---|\n"
             f"|:bust_in_silhouette: مسئول|{self.assignee.avatar_and_display_name_considering_member(db, workspace_id) if self.assignee else EMPTY_ASSIGNEE}|\n"

@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 
 from constants import LIST_COMMAND, HELP_COMMAND, \
-    HELP_COMMAND_IN_PV, DONE_TASK_COMMAND, DELETE_TASK_COMMAND
+    HELP_COMMAND_IN_PV, DONE_TASK_COMMAND, DELETE_TASK_COMMAND, HELP_WORDS
 from limoo_driver_provider import getLimooDriver
 from logic.create_or_edit_task import handle_create_or_edit_task
 from logic.delete_task import handle_delete_task
@@ -31,7 +31,8 @@ async def on_event(event):
                 delete_task_command_match = DELETE_TASK_COMMAND.match(message_text_)
 
                 if message_text_.strip() == f"@{bot_user['username']}" or help_command_match \
-                        or event['data']['conversation_type'] == 'direct' and help_command_in_pv_match:
+                        or event['data']['conversation_type'] == 'direct' and help_command_in_pv_match \
+                        or message_text_.strip() in HELP_WORDS:
                     await handle_help_message(ld, event)
                 elif list_command_match:
                     await handle_list_of_tasks(ld, db, event, list_command_match.group(1), list_command_match.group(2))
