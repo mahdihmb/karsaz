@@ -112,7 +112,7 @@ class Task(Base):
             f"|:date: زمان تخصیص|{self.assign_date_jalali()}|\n"
             f"|:writing_hand: سازنده|{self.reporter.avatar_and_display_name_considering_member(db, workspace_id)}|\n"
             f"|:link: لینک پیام|{self.direct_link()}|\n"
-            # f"|:radio_button: عملیات|[[اتمام کار]({DONE_TASK_TEMPLATE.format(self.id)})] [[حذف کار]({DELETE_TASK_TEMPLATE.format(self.id)})]|\n"  # TODO
+            f"|:radio_button: عملیات|[[اتمام کار]({DONE_TASK_TEMPLATE.format(self.id)})] [[حذف کار]({DELETE_TASK_TEMPLATE.format(self.id)})]|\n"
         )
 
 
