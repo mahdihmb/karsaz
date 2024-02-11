@@ -81,7 +81,8 @@ class Task(Base):
 
         result = re.sub(MENTION_USERNAME_PATTERN, lambda match: '@' + mentioned_users_map.get(match.group(1)), self.description)
         result = (result.replace('#فوری', '#_فوری')
-                  .replace('#آنی', '#_آنی'))
+                  .replace('#آنی', '#_آنی')
+                  .replace('@گروه', '@_گروه'))
         return result
 
     def direct_link(self):
