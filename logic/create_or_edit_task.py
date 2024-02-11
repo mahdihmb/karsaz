@@ -14,13 +14,13 @@ async def handle_create_or_edit_task(ld: LimooDriver, db: Session, event):
     conversation_id_ = event['data']['message']['conversation_id']
     message_id_ = event['data']['message']['id']
     message_text_ = event['data']['message']['text']
-    doer_user_id_ = event['data']['doer_user_id'] or event['data']['message']['user_id']
+    user_id_ = event['data']['message']['user_id']
 
-    task = db.get(Task, message_id_)
-    if task and task.reporter_id != doer_user_id_:
+    if user_id_ != event['data']['doer_user_id']:
         return;
 
-    doer_user = await get_or_add_user_by_id(db, ld, doer_user_id_, workspace_id_)
+    task = db.get(Task, message_id_)
+    reporter = await get_or_add_user_by_id(db, ld, user_id_, workspace_id_)
 
     if TASK_TAG_PATTERN.search(message_text_):
         marked_as_done = DONE_TAG_PATTERN.search(message_text_)
@@ -42,7 +42,7 @@ async def handle_create_or_edit_task(ld: LimooDriver, db: Session, event):
             elif not marked_as_done and pre_status == TaskStatus.DONE:
                 remove_reactions(ld, workspace_id_, conversation_id_, message_id_, ['white_check_mark'])
         else:
-            asyncio.create_task(add_task(db, ld, event, doer_user, assignee, status))
+            asyncio.create_task(add_task(db, ld, event, reporter, assignee, status))
             add_reactions(ld, workspace_id_, conversation_id_, message_id_, ['large_blue_circle'])
             if marked_as_done:
                 add_reactions(ld, workspace_id_, conversation_id_, message_id_, ['white_check_mark'])
