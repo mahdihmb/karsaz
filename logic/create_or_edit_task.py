@@ -16,7 +16,7 @@ async def handle_create_or_edit_task(ld: LimooDriver, db: Session, event):
     message_text_ = event['data']['message']['text']
     user_id_ = event['data']['message']['user_id']
 
-    if user_id_ != event['data']['doer_user_id']:
+    if event['data']['doer_user_id'] and user_id_ != event['data']['doer_user_id']:
         return;
 
     task = db.get(Task, message_id_)
