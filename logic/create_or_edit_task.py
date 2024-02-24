@@ -17,10 +17,13 @@ async def handle_create_or_edit_task(ld: LimooDriver, db: Session, event):
     user_id_ = event['data']['message']['user_id']
 
     if event['data']['doer_user_id'] and user_id_ != event['data']['doer_user_id']:
-        return;
+        return
+
+    reporter = await get_or_add_user_by_id(db, ld, user_id_, workspace_id_)
+    if reporter.is_bot:
+        return
 
     task = db.get(Task, message_id_)
-    reporter = await get_or_add_user_by_id(db, ld, user_id_, workspace_id_)
 
     if TASK_TAG_PATTERN.search(message_text_):
         marked_as_done = DONE_TAG_PATTERN.search(message_text_)
