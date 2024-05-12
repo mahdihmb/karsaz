@@ -32,7 +32,7 @@ async def on_event(event):
 
                 if message_text_.strip() == f"@{bot_user['username']}" or help_command_match \
                         or event['data']['conversation_type'] == 'direct' and help_command_in_pv_match \
-                        or message_text_.strip() in HELP_WORDS:
+                        or event['data']['conversation_type'] == 'direct' and message_text_.strip() in HELP_WORDS:
                     await handle_help_message(ld, event)
                 elif list_command_match:
                     await handle_list_of_tasks(ld, db, event, list_command_match.group(1), list_command_match.group(2))
